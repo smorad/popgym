@@ -1,5 +1,3 @@
-import unittest
-
 import numpy as np
 
 from popgym.envs.count_recall import CountRecall
@@ -13,16 +11,16 @@ class TestCountRecall(AbstractTest.POPGymTest):
     def test_perfect(self):
         counts = {k: 0 for k in range(self.env.num_distinct_cards)}
 
-        obs, info = self.env.reset(return_info=True)
+        obs, info = self.env.reset()
         d, q = obs
         counts[d] += 1
         action = np.array([counts[q]])
         reward = 0
-        done = False
+        terminated = truncated = False
 
         t = 0
-        while not done:
-            obs, rew, done, info = self.env.step(action)
+        while not (terminated or truncated):
+            obs, rew, terminated, truncated, info = self.env.step(action)
             d, q = obs
             counts[d] += 1
             action = np.array([counts[q]])
@@ -36,16 +34,16 @@ class TestCountRecall(AbstractTest.POPGymTest):
     def test_awful(self):
         counts = {k: 0 for k in range(self.env.num_distinct_cards)}
 
-        obs, info = self.env.reset(return_info=True)
+        obs, info = self.env.reset()
         d, q = obs
         counts[d] += 1
         action = np.array([counts[q] + 2])
         reward = 0
-        done = False
+        terminated = truncated = False
 
         t = 0
-        while not done:
-            obs, rew, done, info = self.env.step(action)
+        while not (terminated or truncated):
+            obs, rew, terminated, truncated, info = self.env.step(action)
             d, q = obs
             counts[d] += 1
             action = np.array([counts[q] + 2])

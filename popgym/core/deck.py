@@ -1,7 +1,7 @@
 import copy
 from typing import Callable, List
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 
@@ -87,7 +87,7 @@ class Deck:
                 raise Exception(f"Invalid field: {f}")
         space = np.tile(np.array(space), hand_size)
         if len(space) == 1:
-            return gym.spaces.Discrete(space)
+            return gym.spaces.Discrete(space[0])
         return gym.spaces.MultiDiscrete(space)
 
     def __init__(self, num_decks=1, shuffle=False):

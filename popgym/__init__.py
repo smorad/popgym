@@ -1,7 +1,7 @@
 import inspect
 from typing import Any, Dict
 
-import gym
+import gymnasium as gym
 
 from popgym.envs.autoencode import (
     Autoencode,

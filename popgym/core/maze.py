@@ -3,7 +3,7 @@ from enum import IntEnum
 from typing import Optional
 from warnings import warn
 
-import gym
+import gymnasium as gym
 import numpy as np
 from mazelib import Maze
 from mazelib.generate.HuntAndKill import HuntAndKill
@@ -155,7 +155,6 @@ class MazeEnv(POPGymEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
     ):
         super().reset(seed=seed)

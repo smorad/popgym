@@ -1,8 +1,9 @@
 import enum
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.deck import Deck
 from popgym.core.env import POPGymEnv
@@ -57,8 +58,8 @@ class Autoencode(POPGymEnv):
         )
         return cards, mode, pos
 
-    def step(self, action):
-        done = False
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+        terminated = truncated = False
         reward = 0
         # TODO: This is causing flaky tests, make sure we are not
         # off-by-one in step
@@ -73,7 +74,7 @@ class Autoencode(POPGymEnv):
             obs = self.make_obs(self.deck["system"][-1])
         else:
             # Recited all cards
-            done = len(self.deck["system"]) == 1
+            terminated = len(self.deck["system"]) == 1
             correct_card = self.deck.suits_idx[self.deck["system"].pop(-1)]
             if action == correct_card:
                 reward = reward_scale
@@ -82,27 +83,23 @@ class Autoencode(POPGymEnv):
 
             obs = self.make_obs(np.array([0]))
 
-        info = {}
+        info: dict = {}
 
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def reset(
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
         super().reset(seed=seed)
         self.deck.reset(rng=self.np_random)
         self.deck.deal("system", 1)
 
         self.mode = Mode.WATCH
         obs = self.make_obs(self.deck["system"][-1])
-        if return_info:
-            return obs, {}
-
-        return obs
+        return obs, {}
 
 
 class AutoencodeEasy(Autoencode):

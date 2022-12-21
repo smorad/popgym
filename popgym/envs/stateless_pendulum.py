@@ -1,12 +1,13 @@
 # Inspired by ray rllib at
 # https://github.com/ray-project/ray/blob/master/rllib/examples/env/stateless_pendulum.py
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
-from gym.envs.classic_control import PendulumEnv
-from gym.spaces import Box
+from gymnasium.core import ActType, ObsType
+from gymnasium.envs.classic_control import PendulumEnv
+from gymnasium.spaces import Box
 
 from popgym.core.env import POPGymEnv
 
@@ -43,40 +44,23 @@ class StatelessPendulum(PendulumEnv, POPGymEnv):
     def get_state(self):
         return self._state
 
-    def step(
-        self, action: gym.core.ActType
-    ) -> Tuple[gym.core.ObsType, float, bool, dict]:
-        next_obs, reward, done, info = super().step(action)
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+        next_obs, reward, terminated, truncated, info = super().step(action)
         self._state = next_obs
         self.num_steps += 1
         if self.num_steps >= self.max_episode_length:
-            done = True
+            truncated = True
         reward = self.reward_transform(reward)
         # next_obs is [cos(theta), sin(theta), theta-dot (angular velocity)]
-        return next_obs[:-1], reward, done, info
+        return next_obs[:-1], reward, terminated, truncated, info
 
     def reset(
-        self,
-        *,
-        seed: Optional[int] = None,
-        return_info: bool = False,
-        options: Optional[dict] = None
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, dict]]:
+        self, *, seed: Optional[int] = None, options: Optional[dict] = None
+    ) -> Tuple[gym.core.ObsType, dict]:
         self.num_steps = 0
-        if return_info:
-            init_obs, info = super().reset(
-                seed=seed, return_info=return_info, options=options
-            )
-            self._state = init_obs
-            return init_obs[:-1], info
-
-        else:
-            init_obs = super().reset(
-                seed=seed, return_info=return_info, options=options
-            )
-            self._state = init_obs
-            # init_obs is [cos(theta), sin(theta), theta-dot (angular velocity)]
-            return init_obs[:-1]
+        init_obs, info = super().reset(seed=seed, options=options)
+        self._state = init_obs
+        return init_obs[:-1], info
 
 
 class StatelessPendulumEasy(StatelessPendulum):

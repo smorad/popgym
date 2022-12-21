@@ -1,8 +1,9 @@
 import enum
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.env import POPGymEnv
 
@@ -58,11 +59,11 @@ class MineSweeper(POPGymEnv):
     def get_state(self):
         return self.hidden_grid.flatten().copy()
 
-    def step(self, action):
-        done = False
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+        terminated = truncated = False
         action = tuple(action)
         if self.hidden_grid[action] == HiddenSquare.MINE:
-            done = True
+            terminated = True
             reward = self.fail_reward_scale
         elif self.hidden_grid[action] == HiddenSquare.VIEWED:
             # Querying already viewed square
@@ -71,14 +72,13 @@ class MineSweeper(POPGymEnv):
             self.hidden_grid[action] = HiddenSquare.VIEWED
             reward = self.success_reward_scale
 
-        done |= (self.timestep == self.max_episode_length) or np.all(
-            self.hidden_grid != HiddenSquare.CLEAR
-        ).item()
+        truncated = self.timestep == self.max_episode_length
+        terminated |= np.all(self.hidden_grid != HiddenSquare.CLEAR).item()
 
         obs = self.neighbor_grid[action].item()
         self.timestep += 1
 
-        return obs, reward, done, {}
+        return obs, reward, terminated, truncated, {}
 
     def render(self):
         visible_mask = self.hidden_grid == HiddenSquare.VIEWED
@@ -91,9 +91,8 @@ class MineSweeper(POPGymEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
         super().reset(seed=seed)
         # Init grids
         self.hidden_grid = np.full(self.dims, HiddenSquare.CLEAR, dtype=np.int8)
@@ -111,21 +110,17 @@ class MineSweeper(POPGymEnv):
 
         self.timestep = 0
         obs = 0
-
-        if return_info:
-            return obs, {}
-
-        return obs
+        return obs, {}
 
 
 if __name__ == "__main__":
     e = MineSweeper()
     obs = e.reset()
     e.render()
-    done = False
-    while not done:
+    terminated = truncated = False
+    while not terminated or truncated:
         action = np.array(input("Enter x,y:").split(",")).astype(np.int8)
-        obs, reward, done, info = e.step(action)
+        obs, reward, terminated, truncated, info = e.step(action)
         e.render()
         print("reward", reward)
 

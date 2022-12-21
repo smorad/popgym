@@ -1,7 +1,8 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.env import POPGymEnv
 
@@ -32,37 +33,30 @@ class MultiarmedBandit(POPGymEnv):
     def get_state(self):
         return self.bandits.copy()
 
-    def step(self, action, increment=True):
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
         obs = int(self.np_random.random() < self.bandits[action])
         if obs:
             reward = 1 / self.max_episode_length
         else:
             reward = -1 / self.max_episode_length
-        done = self.num_steps >= self.max_episode_length - 1
-        if increment:
-            self.num_steps += 1
+        truncated = self.num_steps >= self.max_episode_length - 1
+        self.num_steps += 1
 
-        return obs, reward, done, self.info.copy()
+        return obs, reward, False, truncated, self.info.copy()
 
     def reset(
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
 
         super(MultiarmedBandit, self).reset(seed=seed)
         self.num_steps = 0
         self.bandits = self.np_random.random(self.num_bandits, dtype=np.float32)
         self.info = {"bandits": self.bandits.copy()}
-        # rand_action = np.random.randint(self.num_bandits)
-        # obs, _, _, info = self.step(rand_action, increment=False)
         obs = 0
-
-        if return_info:
-            return obs, self.info
-        return obs
+        return obs, self.info
 
 
 class MultiarmedBanditEasy(MultiarmedBandit):

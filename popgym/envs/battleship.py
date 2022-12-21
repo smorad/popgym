@@ -1,7 +1,8 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.env import POPGymEnv
 
@@ -44,7 +45,7 @@ class Battleship(POPGymEnv):
         state = (self.board.copy(), self.guesses.copy(), self.last_obs)
         return state
 
-    def step(self, action):
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
         hit = False
         is_ship = self.board[action[0], action[1]]
         guessed_before = self.guesses[action[0], action[1]]
@@ -58,9 +59,8 @@ class Battleship(POPGymEnv):
         # Episode finishes when the max steps is reached
         # (which defaults to the number of squares on the board)
         #       or when all of the ships have been sunk
-        done = (self.num_steps >= self.max_episode_length) or (
-            self.hits == self.needed_hits
-        )
+        truncated = self.num_steps >= self.max_episode_length
+        terminated = self.hits == self.needed_hits
         # Obs is 1 for a hit and 0 for a miss
         obs = int(hit)
         # Reward is structured so that an episode of all hits will have a
@@ -74,10 +74,10 @@ class Battleship(POPGymEnv):
         reward = (int(hit) * (1.0 / self.needed_hits)) + (
             int(not hit) * (-1.0 / (self.max_episode_length - self.needed_hits))
         )
-        info = {}
+        info: dict = {}
         self.last_obs = obs
 
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def place_ship(self, board, ship_size):
         valid = False
@@ -112,9 +112,8 @@ class Battleship(POPGymEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
 
         super(Battleship, self).reset(seed=seed)
         self.num_steps = 0
@@ -130,10 +129,7 @@ class Battleship(POPGymEnv):
         self.last_obs = obs
 
         self.needed_hits = sum(self.ship_sizes)
-        if return_info:
-            return obs, {}
-
-        return obs
+        return obs, {}
 
 
 class BattleshipEasy(Battleship):

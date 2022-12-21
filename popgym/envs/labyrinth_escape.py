@@ -1,6 +1,7 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.maze import Actions, Cell, MazeEnv
 
@@ -22,20 +23,20 @@ class LabyrinthEscape(MazeEnv):
         super().__init__(maze_dims, episode_length)
         self.neg_reward_scale = -1 / self.max_episode_length
 
-    def step(self, action):
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
         super().step(action)
         reward = self.neg_reward_scale
-        done = False
+        terminated = False
         y, x = self.position
         if self.maze.grid[y, x] == Cell.GOAL:
             reward += 1.0
-            done = True
-        done |= self.curr_step == self.max_episode_length - 1
+            terminated = True
+        truncated = self.curr_step == self.max_episode_length - 1
 
         obs = self.get_obs(action)
         info = {"position": (x, y)}
 
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def render(self):
         print(self.tostring(start=True, end=True, agent=True, visited=True))
@@ -44,18 +45,15 @@ class LabyrinthEscape(MazeEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
         super().reset(seed=seed)
         # Based on free space
         x, y = self.position
         self.maze.grid[self.maze.end] = Cell.GOAL
         obs = self.get_obs(Actions.NONE)
 
-        if return_info:
-            return obs, {"maze": str(self.maze.grid)}
-        return obs
+        return obs, {"maze": str(self.maze.grid)}
 
 
 class LabyrinthEscapeEasy(LabyrinthEscape):

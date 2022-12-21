@@ -1,5 +1,5 @@
 import pytest
-from gym.utils.env_checker import check_env
+from gymnasium.utils.env_checker import check_env
 
 from popgym import ALL_ENVS
 from popgym.core.observability import OBS, STATE, Observability
@@ -18,34 +18,36 @@ def check_space(space, data):
 def test_previousaction_step(env):
     wrapped_noaa = PreviousAction(env())
     wrapped_noaa.reset()
-    check_env(wrapped_noaa)
+    check_env(wrapped_noaa, skip_render_check=True)
 
 
 @pytest.mark.parametrize("env", ALL_ENVS.keys())
 def test_antialias_step(env):
     wrapped_aa = Antialias(env())
     wrapped_aa.reset()
-    check_env(wrapped_aa)
+    check_env(wrapped_aa, skip_render_check=True)
 
 
 @pytest.mark.parametrize("env", ALL_ENVS.keys())
 def test_previousaction_antialias_step(env):
     wrapped_aa = Antialias(PreviousAction(env()))
     wrapped_aa.reset()
-    check_env(wrapped_aa)
+    check_env(wrapped_aa, skip_render_check=True)
 
 
 @pytest.mark.parametrize("env", ALL_ENVS.keys())
 def test_markovian_state_space_full(env):
     wrapped = Markovian(env(), Observability.FULL)
-    obs = wrapped.reset()
+    obs, _ = wrapped.reset()
     check_space(wrapped.observation_space, obs)
     check_space(wrapped.state_space, obs)
     for i in range(10):
-        obs, reward, done, info = wrapped.step(wrapped.action_space.sample())
+        obs, reward, terminated, truncated, info = wrapped.step(
+            wrapped.action_space.sample()
+        )
         check_space(wrapped.observation_space, obs)
         check_space(wrapped.state_space, obs)
-        if done:
+        if terminated or truncated:
             _ = wrapped.reset()
 
 
@@ -53,14 +55,16 @@ def test_markovian_state_space_full(env):
 def test_markovian_state_space_partial(env):
     e = env()
     wrapped = Markovian(e, Observability.PARTIAL)
-    obs = wrapped.reset()
+    obs, _ = wrapped.reset()
     check_space(wrapped.observation_space, obs)
     check_space(e.observation_space, obs)
     for i in range(10):
-        obs, reward, done, info = wrapped.step(wrapped.action_space.sample())
+        obs, reward, terminated, truncated, info = wrapped.step(
+            wrapped.action_space.sample()
+        )
         check_space(wrapped.observation_space, obs)
         check_space(e.observation_space, obs)
-        if done:
+        if terminated or truncated:
             _ = wrapped.reset()
 
 
@@ -70,9 +74,11 @@ def test_markovian_state_space_info_dict(env):
     wrapped = Markovian(e, Observability.FULL_IN_INFO_DICT)
     wrapped.reset()
     for i in range(10):
-        obs, reward, done, info = wrapped.step(wrapped.action_space.sample())
+        obs, reward, terminated, truncated, info = wrapped.step(
+            wrapped.action_space.sample()
+        )
         check_space(wrapped.state_space, info[STATE])
-        if done:
+        if terminated or truncated:
             _ = wrapped.reset()
 
 
@@ -80,12 +86,14 @@ def test_markovian_state_space_info_dict(env):
 def test_state_space_full_and_partial(env):
     e = env()
     wrapped = Markovian(e, Observability.FULL_AND_PARTIAL)
-    obs = wrapped.reset()
+    obs, _ = wrapped.reset()
     check_space(wrapped.observation_space[STATE], obs[STATE])
     check_space(wrapped.observation_space[OBS], obs[OBS])
     check_space(e.observation_space, obs[OBS])
     for i in range(10):
-        obs, reward, done, info = wrapped.step(wrapped.action_space.sample())
+        obs, reward, terminated, truncated, info = wrapped.step(
+            wrapped.action_space.sample()
+        )
         check_space(wrapped.observation_space[STATE], obs[STATE])
         check_space(wrapped.observation_space[OBS], obs[OBS])
         check_space(e.observation_space, obs[OBS])

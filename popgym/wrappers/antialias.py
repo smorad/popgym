@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from gym import Env, Wrapper, spaces
-from gym.core import ActType, ObsType
+from gymnasium import Env, Wrapper, spaces
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.observability import OBS, STATE
 
@@ -79,17 +79,12 @@ class Antialias(Wrapper):
             raise NotImplementedError("Unknown observation space")
         return obs
 
-    def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
-        obs, reward, done, info = self.env.step(action)
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+        obs, reward, terminated, truncated, info = self.env.step(action)
         obs = Antialias.antialias_obs(self.env.observation_space, obs, False)
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def reset(self, **kwargs):
-        if kwargs.get("return_info", False):
-            obs, info = self.env.reset(**kwargs)
-            obs = self.antialias_obs(self.env.observation_space, obs, True)
-            return obs, info
-        else:
-            obs = self.env.reset(**kwargs)
-            obs = self.antialias_obs(self.env.observation_space, obs, True)
-            return obs
+        obs, info = self.env.reset(**kwargs)
+        obs = self.antialias_obs(self.env.observation_space, obs, True)
+        return obs, info

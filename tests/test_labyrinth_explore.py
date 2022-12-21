@@ -8,23 +8,23 @@ from popgym.envs.labyrinth_explore import LabyrinthExplore
 class TestLabyrinthExplore(unittest.TestCase):
     def test_step(self):
         e = LabyrinthExplore()
-        obs = e.reset()
+        obs, _ = e.reset()
         self.assertEqual(obs.dtype, np.int32)
-        done = False
+        terminated = truncated = False
         for i in range(1000):
-            obs, _, done, _ = e.step(e.action_space.sample())
+            obs, _, terminated, truncated, _ = e.step(e.action_space.sample())
             self.assertEqual(obs.dtype, np.int32)
-            if done:
+            if terminated or truncated:
                 obs = e.reset()
                 self.assertEqual(obs.dtype, np.int32)
 
     def test_noclip(self):
         e = LabyrinthExplore()
-        done = False
+        terminated = truncated = False
         e.reset()
         for i in range(5):
-            while not done:
-                _, _, done, _ = e.step(e.action_space.sample())
+            while not (terminated or truncated):
+                _, _, terminated, truncated, _ = e.step(e.action_space.sample())
 
             visit_mask = e.explored == 1
             obstacle_mask = e.maze.grid == 1
@@ -45,14 +45,14 @@ class TestLabyrinthExplore(unittest.TestCase):
             + [up] * 4
             + [left] * 4
         )
-        done = False
+        terminated = truncated = False
         cum_rew = 0
         for action in actions:
-            self.assertFalse(done)
-            obs, reward, done, info = e.step(action)
+            self.assertFalse(terminated or truncated)
+            obs, reward, terminated, truncated, info = e.step(action)
             cum_rew += reward
 
-        self.assertTrue(done)
+        self.assertTrue(terminated)
+        self.assertFalse(truncated)
         expected = 1.0 + 8 * e.neg_reward_scale
-        self.assertTrue(done)
         self.assertAlmostEqual(cum_rew, expected)
