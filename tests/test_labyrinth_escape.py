@@ -7,10 +7,9 @@ class TestLabyrinthEscape(unittest.TestCase):
     def test_step(self):
         e = LabyrinthEscape()
         e.reset()
-        done = False
         for i in range(1000):
-            _, _, done, _ = e.step(e.action_space.sample())
-            if done:
+            _, _, terminated, truncated, _ = e.step(e.action_space.sample())
+            if terminated or truncated:
                 e.reset()
 
     def test_tostring(self):
@@ -20,11 +19,11 @@ class TestLabyrinthEscape(unittest.TestCase):
 
     def test_goal(self):
         e = LabyrinthEscape((6, 6))
-        done = False
+        terminated = truncated = False
         e.reset()
         for i in range(5):
-            while not done:
-                _, _, done, _ = e.step(e.action_space.sample())
+            while not (terminated or truncated):
+                _, _, terminated, truncated, _ = e.step(e.action_space.sample())
             self.assertTrue(e.curr_step < e.max_episode_length)
             e.reset()
 
@@ -37,10 +36,10 @@ class TestLabyrinthEscape(unittest.TestCase):
         cum_rew = 0
         for action in actions:
             self.assertFalse(done)
-            obs, reward, done, info = e.step(action)
+            obs, reward, terminated, truncated, info = e.step(action)
             cum_rew += reward
 
-        self.assertTrue(done)
+        self.assertTrue(terminated)
+        self.assertFalse(truncated)
         expected = 1.0 + len(actions) * e.neg_reward_scale
-        self.assertTrue(done)
         self.assertAlmostEqual(cum_rew, expected)

@@ -1,7 +1,8 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.maze import Actions, Cell, Explored, MazeEnv
 
@@ -23,26 +24,26 @@ class LabyrinthExplore(MazeEnv):
         super().__init__(maze_dims, episode_length)
         self.neg_reward_scale = -1 / self.max_episode_length
 
-    def step(self, action):
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
         new_square = self.explored[tuple(self.move(action))] == Explored.NO
         super().step(action)
         reward = self.neg_reward_scale
-        done = False
+        terminated = truncated = False
         y, x = self.position
         if new_square:
             reward = self.pos_reward_scale
         if self.curr_step == self.max_episode_length - 1:
-            done = True
+            truncated = True
         free_mask = self.maze.grid != Cell.OBSTACLE
         visit_mask = self.explored == Explored.YES
         if np.all(free_mask == visit_mask):
             # Explored as much as possible
-            done = True
+            terminated = True
 
         obs = self.get_obs(action)
         info = {"position": (x, y)}
 
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def render(self):
         print(self.tostring(start=True, end=False, agent=True, visited=True))
@@ -51,18 +52,14 @@ class LabyrinthExplore(MazeEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
         super().reset(seed=seed)
         # Based on free space
         self.pos_reward_scale = 1 / ((self.maze.grid == Cell.FREE).sum())
         y, x = self.position
         obs = self.get_obs(Actions.NONE)
-
-        if return_info:
-            return obs, {"maze": str(self.maze.grid)}
-        return obs
+        return obs, {"maze": str(self.maze.grid)}
 
 
 class LabyrinthExploreEasy(LabyrinthExplore):

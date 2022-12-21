@@ -1,7 +1,8 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.deck import Deck
 from popgym.core.env import POPGymEnv
@@ -26,6 +27,8 @@ class CountRecall(POPGymEnv):
         A gym environment
     """
 
+    query: Optional[int]
+
     def __init__(self, num_decks=1, error_clamp=0.5, deck_type="colors"):
         self.value_deck = Deck(num_decks=num_decks)
         self.query_deck = Deck(num_decks=num_decks)
@@ -44,7 +47,7 @@ class CountRecall(POPGymEnv):
             raise NotImplementedError(f"Invalid deck type {deck_type}")
 
         self.num_distinct_cards = len(np.unique(self.deck_type))
-        self.max_card_count = self.value_deck.num_cards / self.num_distinct_cards
+        self.max_card_count = int(self.value_deck.num_cards / self.num_distinct_cards)
         # Space: [dealt card, card query]
         self.observation_space = gym.spaces.MultiDiscrete([self.num_distinct_cards] * 2)
         self.state_space = gym.spaces.Tuple(
@@ -75,7 +78,7 @@ class CountRecall(POPGymEnv):
         )
         return state
 
-    def step(self, action):
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
         if isinstance(action, np.ndarray):
             action = action.item()
 
@@ -88,13 +91,13 @@ class CountRecall(POPGymEnv):
         reward = 1 if action == prev_count else -1
         reward *= self.reward_scale
 
-        done = len(self.value_deck) == 0
+        terminated = len(self.value_deck) == 0
 
         obs = np.array([self.value, self.query], dtype=np.int64)
         self.last_obs = obs
         info = {"counts": self.counts}
 
-        return obs.copy(), reward, done, info
+        return obs.copy(), reward, terminated, False, info
 
     def sample_deck(self):
         return np.random.choice(self.deck_idx_type, size=self.max_episode_length + 1)
@@ -111,9 +114,8 @@ class CountRecall(POPGymEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
         super().reset(seed=seed)
         self.value_deck.reset(rng=self.np_random)
         self.query_deck.reset(rng=self.np_random)  # Having another PRNG is not needed.
@@ -128,10 +130,7 @@ class CountRecall(POPGymEnv):
 
         obs = np.array([self.value, self.query], dtype=np.int64)
         self.last_obs = obs.copy()
-        if return_info:
-            return obs, {"counts": self.counts}
-
-        return obs
+        return obs, {"counts": self.counts}
 
 
 class CountRecallEasy(CountRecall):

@@ -1,8 +1,8 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from gym import Env, Wrapper, spaces
-from gym.core import ActType, ObsType
+from gymnasium import Env, Wrapper, spaces
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.observability import OBS, STATE
 
@@ -135,21 +135,14 @@ class PreviousAction(Wrapper):
             raise NotImplementedError
         return action
 
-    def step(self, action: ActType) -> Tuple[ObsType, float, bool, dict]:
-        obs, reward, done, info = self.env.step(action)
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+        obs, reward, terminated, truncated, info = self.env.step(action)
         obs = PreviousAction.add_act_to_obs(self.env.observation_space, obs, action)
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
 
     def reset(self, **kwargs):
-        if kwargs.get("return_info", False):
-            obs, info = self.env.reset(**kwargs)
-            obs = PreviousAction.add_act_to_obs(
-                self.env.observation_space, obs, self.null_action
-            )
-            return obs, info
-        else:
-            obs = self.env.reset(**kwargs)
-            obs = PreviousAction.add_act_to_obs(
-                self.env.observation_space, obs, self.null_action
-            )
-            return obs
+        obs, info = self.env.reset(**kwargs)
+        obs = PreviousAction.add_act_to_obs(
+            self.env.observation_space, obs, self.null_action
+        )
+        return obs, info

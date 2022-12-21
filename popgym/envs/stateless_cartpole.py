@@ -2,12 +2,13 @@
 # https://github.com/ray-project/ray/blob/master/rllib/examples/env/stateless_cartpole.py
 
 import math
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
-from gym.envs.classic_control import CartPoleEnv
-from gym.spaces import Box
+from gymnasium.core import ActType, ObsType
+from gymnasium.envs.classic_control import CartPoleEnv
+from gymnasium.spaces import Box
 
 from popgym.core.env import POPGymEnv
 
@@ -51,40 +52,24 @@ class StatelessCartPole(CartPoleEnv, POPGymEnv):
             transformed = 1.0 / self.max_episode_length
         return transformed
 
-    def step(
-        self, action: gym.core.ActType
-    ) -> Tuple[gym.core.ObsType, float, bool, dict]:
-        next_obs, reward, done, info = super().step(action)
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
+        next_obs, reward, terminated, truncated, info = super().step(action)
         self.num_steps += 1
         if self.num_steps >= self.max_episode_length:
             # Agent beat episode
-            done = True
+            truncated = True
         reward = self.reward_transform(reward)
         # next_obs is [x-pos, x-veloc, angle, angle-veloc]
         next_obs = np.array([next_obs[0], next_obs[2]])
-        return next_obs, reward, done, info
+        return next_obs, reward, terminated, truncated, info
 
     def reset(
-        self,
-        *,
-        seed: Optional[int] = None,
-        return_info: bool = False,
-        options: Optional[dict] = None
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, dict]]:
+        self, *, seed: Optional[int] = None, options: Optional[dict] = None
+    ) -> Tuple[gym.core.ObsType, dict]:
         self.num_steps = 0
-        if return_info:
-            init_obs, info = super().reset(
-                seed=seed, return_info=return_info, options=options
-            )
-            init_obs = np.array([init_obs[0], init_obs[2]])
-            return init_obs, info
-        else:
-            init_obs = super().reset(
-                seed=seed, return_info=return_info, options=options
-            )
-            # init_obs is [x-pos, x-veloc, angle, angle-veloc]
-            init_obs = np.array([init_obs[0], init_obs[2]])
-            return init_obs
+        init_obs, info = super().reset(seed=seed, options=options)
+        init_obs = np.array([init_obs[0], init_obs[2]])
+        return init_obs, info
 
 
 class StatelessCartPoleEasy(StatelessCartPole):

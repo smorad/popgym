@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
-from gym import Env, spaces
-from gym.core import ObsType
+from gymnasium import Env, spaces
+from gymnasium.core import ObsType
 
 from popgym.core.observability import Observability
 

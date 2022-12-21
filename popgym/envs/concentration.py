@@ -1,8 +1,9 @@
 import math
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
-import gym
+import gymnasium as gym
 import numpy as np
+from gymnasium.core import ActType, ObsType
 
 from popgym.core.deck import Deck
 from popgym.core.env import POPGymEnv
@@ -57,18 +58,18 @@ class Concentration(POPGymEnv):
                 gym.spaces.Discrete(n),  # second card turned
             )
         )
-        self.action_space = gym.spaces.Discrete(np.array(self.deck.num_cards))
+        self.action_space = gym.spaces.Discrete(self.deck.num_cards)
         self.deck.add_players("face_up", "face_up_idx", "in_play", "in_play_idx")
         self.last_in_play_idx = []
         self.last_trying_card_already_up = False
 
-    def step(self, action):
+    def step(self, action: ActType) -> Tuple[ObsType, float, bool, bool, dict]:
         reward = 0
-        done = False
+        terminated = truncated = False
 
         # Done conditions
         if self.curr_step >= self.episode_length - 1:
-            done = True
+            truncated = True
 
         # Flip card
         self.deck["in_play"].append(self.deck.idx[action])
@@ -98,17 +99,17 @@ class Concentration(POPGymEnv):
                 reward = self.success_reward_scale
                 self.deck["face_up"].extend(self.deck["in_play"])
                 self.deck["face_up_idx"].extend(self.deck["in_play_idx"])
-                done |= len(self.deck["face_up"]) == len(self.deck)
+                terminated = len(self.deck["face_up"]) == len(self.deck)
             else:
                 reward = 2 * self.failure_reward_scale
 
             # Flip two last flipped-up cards face down again
             self.deck.discard_hands("in_play", "in_play_idx")
-            self.hand = []
+            self.hand: List[int] = []
 
         self.curr_step += 1
 
-        return self.obs, reward, done, {}
+        return self.obs, reward, terminated, truncated, {}
 
     def render(self, mode="ascii"):
         self.obs.tolist()
@@ -153,9 +154,8 @@ class Concentration(POPGymEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
-    ) -> Union[gym.core.ObsType, Tuple[gym.core.ObsType, Dict[str, Any]]]:
+    ) -> Tuple[gym.core.ObsType, Dict[str, Any]]:
         super().reset(seed=seed)
         self.flip_next_turn = False
         self.deck.reset(rng=self.np_random)
@@ -167,10 +167,7 @@ class Concentration(POPGymEnv):
         self.last_trying_card_already_up = False
         self.obs = self.get_obs()
         info: Dict[str, Any] = {}
-        if return_info:
-            return self.obs, info
-
-        return self.obs
+        return self.obs, info
 
 
 class ConcentrationEasy(Concentration):
