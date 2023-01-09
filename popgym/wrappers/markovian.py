@@ -1,10 +1,11 @@
-from gym import Env, Wrapper, spaces
+from gym import spaces
 
 from popgym.core.env import POPGymEnv
 from popgym.core.observability import OBS, STATE, Observability
+from popgym.core.wrapper import POPGymWrapper
 
 
-class Markovian(Wrapper):
+class Markovian(POPGymWrapper):
     """Wrapper that adds the hidden Markov state to the observation or info dict
 
     Args:
@@ -15,7 +16,7 @@ class Markovian(Wrapper):
         A gym environment
     """
 
-    def __init__(self, env: Env, observability: Observability):
+    def __init__(self, env: POPGymEnv, observability: Observability):
         super(Markovian, self).__init__(env)
         assert isinstance(
             env.unwrapped, POPGymEnv

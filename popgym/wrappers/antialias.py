@@ -1,14 +1,16 @@
 from typing import Tuple
 
-from gym import Env, Wrapper, spaces
+from gym import spaces
 from gym.core import ActType, ObsType
 
 from popgym.core.observability import OBS, STATE
+from popgym.core.wrapper import POPGymWrapper
+from popgym.core.env import POPGymEnv
 
 IS_T0 = "is_t0"
 
 
-class Antialias(Wrapper):
+class Antialias(POPGymWrapper):
     """Wrapper that undoes aliasing produces by the PreviousAction wrapper
 
     Outputs a boolean flag denoting whether the observation was taken
@@ -21,7 +23,7 @@ class Antialias(Wrapper):
         A gym environment with a Discrete(2) appended to the observation space
     """
 
-    def __init__(self, env: Env):
+    def __init__(self, env: POPGymEnv):
         super().__init__(env)
         self.observation_space = Antialias.antialias_obs_space(
             self.env.observation_space

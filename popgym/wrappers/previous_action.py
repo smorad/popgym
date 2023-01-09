@@ -1,15 +1,17 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from gym import Env, Wrapper, spaces
+from gym import spaces
 from gym.core import ActType, ObsType
 
 from popgym.core.observability import OBS, STATE
+from popgym.core.wrapper import POPGymWrapper
+from popgym.core.env import POPGymEnv
 
 PREV_ACTION = "prev_action"
 
 
-class PreviousAction(Wrapper):
+class PreviousAction(POPGymWrapper):
     """Wrapper that adds the last action to the observation.
 
     Args:
@@ -23,7 +25,7 @@ class PreviousAction(Wrapper):
         A gym environment
     """
 
-    def __init__(self, env: Env, null_action: Optional[ActType] = None):
+    def __init__(self, env: POPGymEnv, null_action: Optional[ActType] = None):
         super().__init__(env)
         self.observation_space = PreviousAction.add_act_space_to_obs_space(
             self.env.observation_space, self.env.action_space
